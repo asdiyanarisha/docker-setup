@@ -1,0 +1,15 @@
+version: '3.7'
+services:
+  db:
+    image: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 123123
+    ports:
+      - "3306:3306"
+      - "33060:33060"
+    volumes:
+      - datadir:/var/lib/mysql
+
+volumes:
+  datadir:
