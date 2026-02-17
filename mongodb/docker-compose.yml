@@ -2,10 +2,12 @@ version: "3.8"
 services:
     mongodb:
         image : mongo
-        container_name: mongodb
+        container_name: some-mongo
         environment:
             - PUID=1000
             - PGID=1000
+            - MONGO_INITDB_ROOT_USERNAME=admin
+            - MONGO_INITDB_ROOT_PASSWORD=admin123
         volumes:
             - /home/risha/docker/mongodb/database:/data/db
         ports:
