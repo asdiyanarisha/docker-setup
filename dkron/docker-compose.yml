@@ -1,0 +1,34 @@
+services:
+  dkron-server:
+    image: dkron/dkron:4.0.9
+    container_name: dkron-server
+    command: agent --server --bootstrap-expect=1 --node-name=server1 --tag "role=server"
+    ports:
+      - "15689:8080"
+      - "8946:8946"
+    networks:
+      - dkron-net
+    environment:
+      - TZ=Asia/Jakarta
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/v1/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  dkron-agent:
+    image: dkron/dkron:4.0.9
+    container_name: dkron-agent
+    command: agent --retry-join=dkron-server:8946 --node-name=worker1 --tag agent=true
+    depends_on:
+      dkron-server:
+        condition: service_healthy   # tunggu server benar-benar ready
+    networks:
+      - dkron-net
+    environment:
+      - TZ=Asia/Jakarta
+
+networks:
+  dkron-net:
+    driver: bridge
