@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+
+  # ─── OpenTelemetry Collector ─────────────────────────────────────────────────
+  otel-collector:
+    image: otel/opentelemetry-collector:0.100.0
+    command: ["--config=/etc/otel/config.yaml"]
+    configs:
+      - source: otel-config
+        target: /etc/otel/config.yaml
+    ports:
+      - "4317:4317"   # OTLP gRPC (kirim trace dari app)
+      - "4318:4318"   # OTLP HTTP (kirim trace dari app)
+    depends_on:
+      - jaeger
+    restart: unless-stopped
+    mem_limit: 128m
+    cpus: "0.25"
+    networks:
+      - otel-net
+
+  # ─── Jaeger (visualisasi trace) ──────────────────────────────────────────────
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "16686:16686"   # Jaeger UI → http://localhost:16686
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: "0.25"
+    networks:
+      - otel-net
+
+networks:
+  otel-net:
+    driver: bridge
+
+# ─── Config langsung di dalam compose (tidak perlu file eksternal) ────────────
+configs:
+  otel-config:
+    content: |
+      receivers:
+        otlp:
+          protocols:
+            grpc:
+              endpoint: 0.0.0.0:4317
+            http:
+              endpoint: 0.0.0.0:4318
+
+      processors:
+        batch:
+          timeout: 5s
+        memory_limiter:
+          limit_mib: 100
+          spike_limit_mib: 20
+          check_interval: 5s
+
+      exporters:
+        otlp/jaeger:
+          endpoint: jaeger:4317
+          tls:
+            insecure: true
+
+      service:
+        pipelines:
+          traces:
+            receivers:  [otlp]
+            processors: [memory_limiter, batch]
+            exporters:  [otlp/jaeger]

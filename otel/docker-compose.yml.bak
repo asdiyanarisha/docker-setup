@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+
+  # ─── OpenTelemetry Collector ─────────────────────────────────────────────────
+  otel-collector:
+    image: otel/opentelemetry-collector:0.100.0
+    command: ["--config=/etc/otel/config.yaml"]
+    volumes:
+      - ./otel-config.yaml:/etc/otel/config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC (kirim trace dari app)
+      - "4318:4318"   # OTLP HTTP (kirim trace dari app)
+    depends_on:
+      - jaeger
+    restart: unless-stopped
+    mem_limit: 128m
+    cpus: "0.25"
+    networks:
+      - otel-net
+
+  # ─── Jaeger (visualisasi trace) ──────────────────────────────────────────────
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    ports:
+      - "16686:16686"   # Jaeger UI → http://localhost:16686
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: "0.25"
+    networks:
+      - otel-net
+
+networks:
+  otel-net:
+    driver: bridge
